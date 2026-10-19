@@ -396,7 +396,7 @@ dependencies = [
  "joinery",
  "lazy_format",
  "log",
- "owo-colors 4.1.0",
+ "owo-colors 4.4.0",
  "serde",
  "serde_json",
  "thiserror 2.0.3",
@@ -1295,9 +1295,9 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
 name = "owo-colors"
-version = "4.1.0"
+version = "4.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb37767f6569cd834a413442455e0f066d0d522de8630436e2a1761d9726ba56"
+checksum = "13c45bb4a6ae1280ec0803b1ef9d3455eb50f01efbbe1447ab020f1d54fba9d8"
 
 [[package]]
 name = "parking_lot"
@@ -2064,7 +2064,7 @@ dependencies = [
  "eyre",
  "joinery",
  "lazy_format",
- "owo-colors 4.1.0",
+ "owo-colors 4.4.0",
  "serde",
  "serde_json",
 ]
