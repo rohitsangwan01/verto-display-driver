@@ -11,7 +11,7 @@ winreg = "0.52.0"
 thiserror = "2.0.3"
 
 [dependencies.windows]
-version = "0.58.0"
+version = "0.62.2"
 features = ["Win32_System_Diagnostics_Debug"]
 
 [dependencies.windows-sys]
