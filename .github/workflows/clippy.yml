@@ -1,0 +1,27 @@
+name: Clippy
+
+on:
+  workflow_dispatch:
+
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  clippy:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+
+      - name: Add Clippy Component
+        run: rustup component add clippy
+
+      - name: Clippy
+        run: cargo clippy --all-features -- --deny warnings

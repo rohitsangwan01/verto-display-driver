@@ -1,0 +1,45 @@
+[env]
+BUILD_SUBFOLDER = "debug"
+BUILD_FLAGS = "--target ${CARGO_MAKE_RUST_TARGET_TRIPLE}"
+TARGET_PATH = "${CARGO_MAKE_RUST_TARGET_TRIPLE}\\${BUILD_SUBFOLDER}"
+
+[env.prod]
+BUILD_SUBFOLDER = "release"
+BUILD_FLAGS = "--release --target ${CARGO_MAKE_RUST_TARGET_TRIPLE}"
+TARGET_PATH = "${CARGO_MAKE_RUST_TARGET_TRIPLE}\\${BUILD_SUBFOLDER}"
+
+[tasks.set-build-path]
+env = { "BUILD_TARGET_PATH" = { script = ['''
+    if defined CARGO_MAKE_CRATE_TARGET_DIRECTORY (
+        set target_dir=%CARGO_MAKE_CRATE_TARGET_DIRECTORY%
+    ) else (
+        for /f "tokens=*" %%a in ('cargo target-dir 2^>nul') do set target_dir=%%a
+    )
+    if not defined target_dir (
+        set target_dir=..\target
+    )
+    echo %target_dir%\%TARGET_PATH%
+'''] } }
+
+[tasks.copy]
+dependencies = ["set-build-path"]
+script = [
+    '''
+    if not exist "..\\target\\output" (
+        echo Directory not found, creating it...
+        mkdir ..\\target\\output
+    )
+    ''',
+    # copy output files to it
+    '''
+        copy /y "%BUILD_TARGET_PATH%\*.exe" ..\target\output
+    ''',
+]
+
+[tasks.build]
+clear = true
+script = ["cargo b %BUILD_FLAGS%"]
+
+[config]
+default_to_workspace = false
+

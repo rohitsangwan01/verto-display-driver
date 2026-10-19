@@ -1,0 +1,224 @@
+env_scripts = [
+    # set the visual studio dev console environment for everyone
+    '''
+#!@duckscript
+CI = get_env CI
+Program_Files = get_env ProgramFiles
+Program_Files_x86 = get_env "ProgramFiles(x86)"
+
+# Dynamically locate VsDevCmd.bat via vswhere if available
+BAT_PATH = set ""
+vswhere = set "${Program_Files_x86}\\Microsoft Visual Studio\\Installer\\vswhere.exe"
+is_vswhere = is_path_exists ${vswhere}
+if ${is_vswhere}
+    out = exec "${vswhere}" -latest -property installationPath
+    vs_dir = trim ${out.stdout}
+    if not is_empty ${vs_dir}
+        candidate = set "${vs_dir}\\Common7\\Tools\\VsDevCmd.bat"
+        if is_path_exists ${candidate}
+            BAT_PATH = set ${candidate}
+        end
+    end
+end
+
+if is_empty ${BAT_PATH}
+    BAT_PATH = set "${Program_Files}\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat"
+    if not is_empty ${CI}
+        BAT_PATH = set "${Program_Files}\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\Tools\\VsDevCmd.bat"
+    end
+end
+
+set_env BAT_PATH ${BAT_PATH}
+
+output = exec cmd /c call "${BAT_PATH}" && set
+stdout = set ${output.stdout}
+
+env_vars = split ${stdout} \r\n
+len = array_length ${env_vars}
+if greater_than ${len} 4
+    # remove the first 4 since they are only a header
+    array_remove ${env_vars} 0
+    array_remove ${env_vars} 0
+    array_remove ${env_vars} 0
+    array_remove ${env_vars} 0
+end
+
+for var in ${env_vars}
+    handle = split ${var} =
+
+    key = array_get ${handle} 0
+    array_remove ${handle} 0
+
+    value = array_join ${handle} =
+
+    if not is_empty ${key}
+        if not is_empty ${value}
+            set_env ${key} ${value}
+        end
+    end
+
+    release ${handle}
+end
+
+release ${env_vars}
+
+# Detect architecture and configure stampinf / inf2cat parameters
+target_arch = get_env CARGO_MAKE_RUST_TARGET_ARCH
+is_arm = set false
+if eq ${target_arch} "aarch64"
+    is_arm = set true
+end
+if eq ${target_arch} "arm64"
+    is_arm = set true
+end
+
+if ${is_arm}
+    set_env STAMPINF_ARCH "arm64"
+    set_env INF2CAT_OS "10_RS3_ARM64,10_RS4_ARM64,10_RS5_ARM64,10_19H1_ARM64,10_VB_ARM64,10_CO_ARM64,10_NI_ARM64,10_GE_ARM64,Server2025_ARM64"
+else
+    set_env STAMPINF_ARCH "amd64"
+    set_env INF2CAT_OS "10_x64,10_AU_X64,10_RS2_X64,10_RS3_X64,10_RS4_X64,10_RS5_X64,10_19H1_X64,10_VB_X64,10_CO_X64,10_NI_X64"
+end
+
+# Configure signing options based on certificate location
+if not is_empty ${CI}
+    set_env SIGN_OPTIONS "/f ../private.pfx /p %PRIVATE_KEY_PASSWORD%"
+else
+    res_user = exec cmd /c certutil -user -store "My"
+    is_in_user = contains ${res_user.stdout} "DriverCertificate"
+    if ${is_in_user}
+        set_env SIGN_OPTIONS "/n DriverCertificate"
+    else
+        res_sm = exec cmd /c certutil -store "My"
+        is_in_sm = contains ${res_sm.stdout} "DriverCertificate"
+        if ${is_in_sm}
+            set_env SIGN_OPTIONS "/sm /n DriverCertificate"
+        else
+            set_env SIGN_OPTIONS "/n DriverCertificate"
+        end
+    end
+end
+''',
+]
+
+[env]
+BUILD_DLL_OLD_NAME = "virtual_display_driver.dll"
+BUILD_DLL_NAME = "VirtualDisplayDriver.dll"
+# default development env settings (set by default)
+BUILD_SUBFOLDER = "debug"
+BUILD_FLAGS = "--target ${CARGO_MAKE_RUST_TARGET_TRIPLE}"
+TARGET_PATH = "${CARGO_MAKE_RUST_TARGET_TRIPLE}\\${BUILD_SUBFOLDER}"
+CAT_FILE = "delta.cat"
+
+[env.dev]
+# for developer inf stamping mode
+PRIVATE_DRIVER_PACKAGE = "true"
+
+[env.development]
+# for developer inf stamping mode
+PRIVATE_DRIVER_PACKAGE = "true"
+
+[env.prod]
+BUILD_SUBFOLDER = "release"
+BUILD_FLAGS = "--release --target ${CARGO_MAKE_RUST_TARGET_TRIPLE}"
+TARGET_PATH = "${CARGO_MAKE_RUST_TARGET_TRIPLE}\\${BUILD_SUBFOLDER}"
+CAT_FILE = "VirtualDisplayDriver.cat"
+
+[tasks.set-build-path]
+env = { "BUILD_TARGET_PATH" = { script = ['''
+    if defined CARGO_MAKE_CRATE_TARGET_DIRECTORY (
+        set target_dir=%CARGO_MAKE_CRATE_TARGET_DIRECTORY%
+    ) else (
+        for /f "tokens=*" %%a in ('cargo target-dir 2^>nul') do set target_dir=%%a
+    )
+    if not defined target_dir (
+        set target_dir=..\target
+    )
+    echo %target_dir%\%TARGET_PATH%
+'''] } }
+
+[tasks.build-driver]
+dependencies = ["set-build-path"]
+script = ["cargo b %BUILD_FLAGS%"]
+
+[tasks.rename]
+dependencies = ["build-driver"]
+script = ['''
+    cd /D %BUILD_TARGET_PATH%
+    del /f /q "%BUILD_DLL_NAME%" 2>nul
+    if exist "%BUILD_DLL_OLD_NAME%" (
+        ren "%BUILD_DLL_OLD_NAME%" "%BUILD_DLL_NAME%"
+    )
+''']
+
+[tasks.stamp-inf]
+dependencies = ["build-driver"]
+script = [
+    # copy inf to target dir
+    "copy /y VirtualDisplayDriver.inf \"%BUILD_TARGET_PATH%\\VirtualDisplayDriver.inf\"",
+
+    # Stamp inf
+    "stampinf.exe -v \"%CARGO_MAKE_PROJECT_VERSION%\" -d * -a %STAMPINF_ARCH% -u 2.15.0 -f \"%BUILD_TARGET_PATH%\\VirtualDisplayDriver.inf\"",
+]
+
+[tasks.gen-cat]
+dependencies = ["build-driver", "rename", "stamp-inf", "sign"]
+script = [
+    # generate and sign cat file
+    '''
+    inf2cat /driver:%BUILD_TARGET_PATH% /os:%INF2CAT_OS%
+
+    signtool sign /a /fd SHA256 /v %SIGN_OPTIONS% /t http://timestamp.digicert.com "%BUILD_TARGET_PATH%/%CAT_FILE%"
+    ''',
+]
+
+[tasks.sign]
+dependencies = ["build-driver", "rename", "stamp-inf"]
+script = [
+    # Create a self signed certificate (only if not already done)
+    '''
+      certutil -store "My" | findstr /i "DriverCertificate" >NUL 2>NUL
+      if %errorlevel% neq 0 (
+        certutil -user -store "My" | findstr /i "DriverCertificate" >NUL 2>NUL
+        if %errorlevel% neq 0 (
+            if not defined CI (
+                powershell -Command "Start-Process cmd -ArgumentList '/c call \"\"\"%BAT_PATH%\"\"\" && makecert -r -pe -ss my -sr localmachine -n CN=DriverCertificate DriverCertificate.cer' -Verb RunAs"
+            )
+        )
+      )
+    ''',
+
+    # Sign the driver. If this fails, you probably installed the cert before this. Run it again
+    "signtool sign /a /fd SHA256 /v %SIGN_OPTIONS% /t http://timestamp.digicert.com \"%BUILD_TARGET_PATH%/%BUILD_DLL_NAME%\"",
+]
+
+# copy all files to an output folder of artifacts
+[tasks.copy]
+dependencies = ["set-build-path"]
+script = [
+    '''
+    if not exist "..\\target\\output" (
+        echo Directory not found, creating it...
+        mkdir ..\\target\\output
+    ) else (
+        echo Directory found, deleting files...
+        del /S /Q /F ..\\target\\output\\*.dll 2>nul
+        del /S /Q /F ..\\target\\output\\*.inf 2>nul
+        del /S /Q /F ..\\target\\output\\*.cat 2>nul
+    )
+    ''',
+    # copy output files to it
+    '''
+        copy /y "%BUILD_TARGET_PATH%\*.dll" ..\target\output
+        copy /y "%BUILD_TARGET_PATH%\*.inf" ..\target\output
+        copy /y "%BUILD_TARGET_PATH%\*.cat" ..\target\output
+    ''',
+]
+
+[tasks.build]
+dependencies = ["build-driver", "rename", "sign", "stamp-inf", "gen-cat"]
+clear = true
+
+[config]
+default_to_workspace = false
+

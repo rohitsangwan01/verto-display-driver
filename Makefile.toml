@@ -1,0 +1,177 @@
+[env]
+BUILD_TARGET_PATH = { script = ['''
+    if defined CARGO_MAKE_CRATE_TARGET_DIRECTORY (
+        set target_dir=%CARGO_MAKE_CRATE_TARGET_DIRECTORY%
+    ) else (
+        for /f "tokens=*" %%a in ('cargo target-dir 2^>nul') do set target_dir=%%a
+    )
+    if not defined target_dir (
+        set target_dir=target
+    )
+    echo %target_dir%
+'''] }
+
+
+[env.prod]
+PROD = "1"
+
+[tasks.build]
+clear = true
+dependencies = [
+    { name = "build", path = "virtual-display-driver" },
+    { name = "copy", path = "virtual-display-driver" },
+    { name = "build", path = "virtual-display-driver-cli" },
+    { name = "copy", path = "virtual-display-driver-cli" },
+    { name = "build", path = "vdd-user-session-service" },
+    { name = "copy", path = "vdd-user-session-service" },
+    { name = "build", path = "bindings/python" },
+    { name = "copy", path = "bindings/python" },
+]
+
+[tasks.build-installer]
+dependencies = ["build"]
+script = [
+    '''
+#!@duckscript
+# Dynamically determine architecture for WiX
+target_arch = get_env CARGO_MAKE_RUST_TARGET_ARCH
+is_arm = set false
+if eq ${target_arch} "aarch64"
+    is_arm = set true
+end
+if eq ${target_arch} "arm64"
+    is_arm = set true
+end
+
+wix_arch = set "x64"
+if ${is_arm}
+    wix_arch = set "arm64"
+end
+set_env WIX_ARCH ${wix_arch}
+
+# Dynamically locate VsDevCmd.bat
+Program_Files = get_env ProgramFiles
+Program_Files_x86 = get_env "ProgramFiles(x86)"
+CI = get_env CI
+
+BAT_PATH = set ""
+vswhere = set "${Program_Files_x86}\\Microsoft Visual Studio\\Installer\\vswhere.exe"
+is_vswhere = is_path_exists ${vswhere}
+if ${is_vswhere}
+    out = exec "${vswhere}" -latest -property installationPath
+    vs_dir = trim ${out.stdout}
+    if not is_empty ${vs_dir}
+        candidate = set "${vs_dir}\\Common7\\Tools\\VsDevCmd.bat"
+        if is_path_exists ${candidate}
+            BAT_PATH = set ${candidate}
+        end
+    end
+end
+
+if is_empty ${BAT_PATH}
+    BAT_PATH = set "${Program_Files}\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat"
+    if not is_empty ${CI}
+        BAT_PATH = set "${Program_Files}\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\Tools\\VsDevCmd.bat"
+    end
+end
+set_env BAT_PATH ${BAT_PATH}
+
+# Configure signing options
+if not is_empty ${CI}
+    set_env SIGN_OPTIONS "/f private.pfx /p %PRIVATE_KEY_PASSWORD%"
+else
+    res_user = exec cmd /c certutil -user -store "My"
+    is_in_user = contains ${res_user.stdout} "DriverCertificate"
+    if ${is_in_user}
+        set_env SIGN_OPTIONS "/n DriverCertificate"
+    else
+        res_sm = exec cmd /c certutil -store "My"
+        is_in_sm = contains ${res_sm.stdout} "DriverCertificate"
+        if ${is_in_sm}
+            set_env SIGN_OPTIONS "/sm /n DriverCertificate"
+        else
+            set_env SIGN_OPTIONS "/n DriverCertificate"
+        end
+    end
+end
+''',
+    '''
+    if defined RELEASE_VERSION (
+        set release=-i %RELEASE_VERSION%
+    )
+
+    if not defined PROD (
+        set mode=-d -D
+    )
+
+    del /S /Q /F target\output\*.msi 2>nul
+
+    cargo wix -p virtual-display-driver %release% %mode% --nocapture -a %WIX_ARCH% -I installer/main.wxs -o target\output
+    ''',
+    '''
+    call "%BAT_PATH%"
+    signtool sign /a /fd SHA256 /v %SIGN_OPTIONS% /t http://timestamp.digicert.com target\output\*.msi
+    ''',
+]
+
+[tasks.package-portable]
+dependencies = ["build"]
+script = [
+    '''
+#!@duckscript
+target_arch = get_env CARGO_MAKE_RUST_TARGET_ARCH
+is_arm = set false
+if eq ${target_arch} "aarch64"
+    is_arm = set true
+end
+if eq ${target_arch} "arm64"
+    is_arm = set true
+end
+
+arch_name = set "x64"
+if ${is_arm}
+    arch_name = set "arm64"
+end
+
+out_dir = set "target/output"
+installer_dir = set "installer"
+
+# Copy installer scripts and files to output folder
+cp "${installer_dir}/install-cert.bat" "${out_dir}/install-cert.bat"
+cp "${installer_dir}/install-driver.bat" "${out_dir}/install-driver.bat"
+cp "${installer_dir}/uninstall-driver.bat" "${out_dir}/uninstall-driver.bat"
+cp "${installer_dir}/install-driver.ps1" "${out_dir}/install-driver.ps1"
+cp "${installer_dir}/uninstall-driver.ps1" "${out_dir}/uninstall-driver.ps1"
+cp "${installer_dir}/test-phase6.ps1" "${out_dir}/test-phase6.ps1"
+cp "${installer_dir}/test-phase6.bat" "${out_dir}/test-phase6.bat"
+cp "${installer_dir}/files/install.reg" "${out_dir}/install.reg"
+cp "${installer_dir}/files/uninstall.reg" "${out_dir}/uninstall.reg"
+
+# Copy architecture-specific nefcon tools
+nefcon_src = set "${installer_dir}/files/${arch_name}/nefconc.exe"
+if is_path_exists ${nefcon_src}
+    cp ${nefcon_src} "${out_dir}/nefconc.exe"
+end
+
+# Copy root certificate if present
+root_cert = set "cert/DriverCertificate.cer"
+is_cert = is_path_exists ${root_cert}
+if not ${is_cert}
+    root_cert = set "DriverCertificate.cer"
+end
+if is_path_exists ${root_cert}
+    cp ${root_cert} "${out_dir}/DriverCertificate.cer"
+end
+
+# Create portable zip archive
+zip_name = set "virtual-desktop-driver-portable-${arch_name}.zip"
+zip_path = set "target/${zip_name}"
+
+echo "Creating portable zip archive: ${zip_path}"
+exec powershell -Command "Get-ChildItem -Path '${out_dir}' -Exclude '*.zip' | Compress-Archive -DestinationPath '${zip_path}' -Force"
+echo "Portable package created successfully: ${zip_path}"
+'''
+]
+
+[config]
+default_to_workspace = false
