@@ -1,6 +1,6 @@
-# Virtual Display Driver
+# Verto Display Driver
 
-[![Build](https://github.com/MolotovCherry/virtual-display-rs/actions/workflows/build.yml/badge.svg?branch=master&event=push)](https://github.com/MolotovCherry/virtual-display-rs/actions/workflows/build.yml) [![GitHub release (with filter)](https://img.shields.io/github/v/release/MolotovCherry/virtual-display-rs)](https://github.com/MolotovCherry/virtual-display-rs/releases)
+[![GitHub release (with filter)](https://img.shields.io/github/v/release/rohitsangwan01/verto-display-driver)](https://github.com/rohitsangwan01/verto-display-driver/releases)
 
 This is a Windows driver made in Rust which creates a virtual desktop.
 
@@ -11,29 +11,24 @@ It has many uses, such as:
 - Getting a higher resolution (or higher refresh rate) display when you don't have a physical one on-hand (though note you can only use it in software/VR)
 - Other uses? Let me know!
 
-Supports: Windows 10 2004+ (x64 only)
-
-_For any bug reports, please see the [debugging or reporting crashes](#debugging-or-reporting-crashes) section to get the panic message for the bug report_
+Supports: Windows 10 2004+, Windows 11 (x64 and ARM64)
 
 ## Features
 - Multiple monitors (up to 10)
 - Multiple resolutions per monitor
 - Multiple refresh rates per resolution
-- App to configure them all, disable all/individual monitors
-
-https://github.com/MolotovCherry/virtual-display-rs/assets/13651622/4a244e40-65d2-4c99-91f7-4e8b352e3ebe
 
 ## How to install
-1. Go to the [releases](https://github.com/MolotovCherry/virtual-display-rs/releases) section for the latest driver.
+1. Go to the [releases](https://github.com/rohitsangwan01/verto-display-driver/releases) section for the latest driver.
 2. Download (you may receive a warning, just press accept)
 3. [Install certificate](#installing-the-certificate)
 4. Run the msi installer
 5. The driver will be installed, started, and you can find a shortcut to the control app in the start menu, named "Virtual Display Driver Control"
 
-_Note: For users having trouble installing/running the app, please see [#49](https://github.com/MolotovCherry/virtual-display-rs/issues/49)_
+_Note: For users having trouble installing/running the app, please see [issues](https://github.com/rohitsangwan01/verto-display-driver/issues)_
 
 ## How to install portable version
-1. Go to the [releases](https://github.com/MolotovCherry/virtual-display-rs/releases) section for the latest driver.
+1. Go to the [releases](https://github.com/rohitsangwan01/verto-display-driver/releases) section for the latest driver.
 2. Download (you may receive a warning, just press accept)
 3. [Install certificate](#installing-the-certificate)
 4. Install `install.reg`
@@ -65,34 +60,60 @@ You can also completely uninstall the driver only by executing the first command
 .\nefconc.exe --remove-device-node --hardware-id Root\VirtualDisplayDriver --class-guid "4D36E968-E325-11CE-BFC1-08002BE10318"
 ```
 
-
 ## Installing the certificate
 The certificate needs installation for Windows to accept the driver
 1. In your downloaded zip, there is a file `DriverCertificate.cer` and `install-cert.bat`
 2. Open a cmd prompt as admin and run `install-cert.bat`
 3. Verify the certificate installed properly. *
 
-\* If the certificate didn't install properly, then the driver won't install. If driver installation fails, this is most likely the reason why; and you should check that the certificate is actually installed. Try manually running the commands in the [`install-cert.bat` file](https://github.com/MolotovCherry/virtual-display-rs/blob/master/installer/install-cert.bat) (below) in an admin cmd prompt to make sure the certificate is installed correctly (for both root and TrustedPublisher stores). The commands will tell you if they successfully added it or not.
+\* If the certificate didn't install properly, then the driver won't install. If driver installation fails, this is most likely the reason why; and you should check that the certificate is actually installed. Try manually running the commands in the [`install-cert.bat` file](./installer/install-cert.bat) (below) in an admin cmd prompt to make sure the certificate is installed correctly (for both root and TrustedPublisher stores). The commands will tell you if they successfully added it or not.
 ```
 certutil -addstore -f root "DriverCertificate.cer"
 certutil -addstore -f TrustedPublisher "DriverCertificate.cer"
 ```
 You can also search for `Manage Computer Certificates`, look in `Trusted Publishers` and `Trusted Root Certification`, you will see the certificate named `DriverCertficate`.
 
-![image](https://github.com/MolotovCherry/virtual-display-rs/assets/13651622/f63d24dd-a61d-42f4-b491-5123fd480d38)
+![Certificate in Manage Computer Certificates](assets/cert-manager.png)
 
 You can manually import it by right clicking on the menu entry -> `All Tasks` -> `Import`, and following the instructions in the import wizard
 
-![image](https://github.com/MolotovCherry/virtual-display-rs/assets/13651622/3a2f7704-12ae-4d66-963c-68c44c66bde4)
+![Importing Certificate](assets/cert-import.png)
 
 Why is it so difficult? The reason I didn't add auto certificate installation is because I believe certificates are a personal thing, and should not be added automatically without the users knowledge.
+
+## Windows ARM64 Support & Installation
+
+This project natively supports Windows 11 on **ARM64** (including Snapdragon X Elite / Plus, Surface Pro ARM64, and Windows on ARM virtual machines) alongside **x64**.
+
+### Driver Signature & Test Signing (Required for ARM64 & Test Builds)
+Because this driver is self-signed using a local certificate (rather than a Microsoft WHQL-issued certificate), Windows requires either enabling **Test Signing** mode or **disabling Driver Signature Enforcement** to allow the driver to load.
+
+> **Note on Secure Boot:**
+> If **Secure Boot** is enabled in your UEFI/BIOS settings, Windows will block turning on Test Signing. You must disable Secure Boot in your device's UEFI/BIOS settings before enabling test signing.
+
+#### Option A: Enable Test Signing Mode (Recommended)
+1. Open PowerShell or Command Prompt as **Administrator**.
+2. Enable test signing by running:
+   ```cmd
+   bcdedit /set testsigning on
+   ```
+3. Restart your computer. Windows will boot into Test Mode (indicated by a small "Test Mode" watermark in the lower-right corner of the desktop).
+4. Install the certificate: run `install-cert.bat` as Administrator (or follow the [certificate installation instructions](#installing-the-certificate)).
+5. Install the driver: run `installer\install-driver.bat` or `installer\install-driver.ps1` as Administrator.
+   - The script automatically detects the `ARM64` architecture, utilizes the ARM64 `nefconc.exe` tool, imports registry settings, creates the device node, and installs the driver package.
+
+*(To disable test signing later, run `bcdedit /set testsigning off` from an elevated prompt and reboot).*
+
+#### Option B: Temporarily Disable Driver Signature Enforcement
+If you prefer not to keep permanent Test Mode enabled:
+1. Hold the `Shift` key while clicking **Restart** in the Windows Start menu (or navigate to `Settings` -> `System` -> `Recovery` -> `Advanced startup` -> `Restart now`).
+2. Go to **Troubleshoot** -> **Advanced options** -> **Startup Settings** -> **Restart**.
+3. Upon restart, press `7` or `F7` to select **Disable driver signature enforcement**.
+4. Once booted into Windows, install the certificate and run `installer\install-driver.bat` as Administrator.
 
 ## Updating
 1. Download the new release
 2. Install the msi package
-
-## Using the app
-Please see the [wiki](https://github.com/MolotovCherry/virtual-display-rs/wiki/Virtual-Display-Driver-Control) for instructions on using the app.
 
 ## How to build
 1. Download and install [Visual Studio](https://visualstudio.microsoft.com/downloads/) (use the 2022 edition)
@@ -134,17 +155,10 @@ All contributions are welcome!
 
 For first time contributors, please read our [contributing](CONTRIBUTING.md) guide.
 
-## Forking or using in other projects
-You are welcome to use this project in your own projects.
+## Upstream & Fork Notice
 
-If you do so, please contribute back to the main project with your code changes, and even by [sponsoring](https://github.com/sponsors/MolotovCherry). Every little bit helps us make an even better project. We appreciate it, thank you!
+This project is a fork of [virtual_display_rs](https://github.com/MolotovCherry/virtual-display-rs) originally created by [MolotovCherry](https://github.com/MolotovCherry).
 
-## Where to talk or get help
-If you have any questions, need support, need to collaborate on development, or any other use-case, you may join our [discord server](https://discord.gg/pDDt78wYQy) (see related `#virtual-display-driver` channels). This is the quickest and easiest way to communicate.
-
-You may also post in the project [discussion](https://github.com/MolotovCherry/virtual-display-rs/discussions) section. Though note that using the discord channel will get your messages seen and responded to quicker.
-
-## Supporting the project
-If this project has helped you, or you want to say thanks and help continued development, [sponsorships](https://github.com/sponsors/MolotovCherry) are very welcome. ❤️
+Special thanks and credit go to MolotovCherry and upstream contributors for the original implementation of the Rust-based Windows Indirect Display Driver. This fork adds and maintains native support for Windows ARM64 (`aarch64-pc-windows-msvc`), multi-architecture build pipelines, and automated installation scripts.
 
 
