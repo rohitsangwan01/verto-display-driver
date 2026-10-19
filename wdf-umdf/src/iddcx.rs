@@ -67,8 +67,8 @@ macro_rules! IddCxCall {
 
                 if is_available {
                     // SAFETY: Only immutable accesses are done to this
-                    //         The underlying array is Copy, so we call as_ptr() directly on it inside block
-                    let fn_table = unsafe { ::wdf_umdf_sys::IddFunctions.as_ptr() };
+                    //         Use addr_of! to avoid creating a reference to mutable static
+                    let fn_table = ::core::ptr::addr_of!(::wdf_umdf_sys::IddFunctions).cast::<::wdf_umdf_sys::WDFFUNC>();
 
                     // SAFETY: Ensured that this is present by if condition from `WdfIsFunctionAvailable!`
                     let f = unsafe {

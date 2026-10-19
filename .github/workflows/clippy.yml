@@ -18,12 +18,10 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: "rust -> target"
+          workspaces: ". -> target"
 
       - name: Add Clippy Component
-        working-directory: rust
         run: rustup component add clippy
 
       - name: Clippy
-        working-directory: rust
         run: cargo clippy --all-features -- --deny warnings

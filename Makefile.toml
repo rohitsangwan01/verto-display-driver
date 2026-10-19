@@ -100,7 +100,7 @@ end
 
     del /S /Q /F target\output\*.msi 2>nul
 
-    cargo wix -p virtual-display-driver %release% %mode% --nocapture -a %WIX_ARCH% -I ../installer/main.wxs -o target\output
+    cargo wix -p virtual-display-driver %release% %mode% --nocapture -a %WIX_ARCH% -I installer/main.wxs -o target\output
     ''',
     '''
     call "%BAT_PATH%"
@@ -128,7 +128,7 @@ if ${is_arm}
 end
 
 out_dir = set "target/output"
-installer_dir = set "../installer"
+installer_dir = set "installer"
 
 # Copy installer scripts and files to output folder
 cp "${installer_dir}/install-cert.bat" "${out_dir}/install-cert.bat"
@@ -148,7 +148,7 @@ if is_path_exists ${nefcon_src}
 end
 
 # Copy root certificate if present
-root_cert = set "../DriverCertificate.cer"
+root_cert = set "DriverCertificate.cer"
 if is_path_exists ${root_cert}
     cp ${root_cert} "${out_dir}/DriverCertificate.cer"
 end

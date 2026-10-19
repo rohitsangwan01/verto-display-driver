@@ -30,7 +30,7 @@ if /i "%PROCESSOR_ARCHITECTURE%"=="AMD64" (
 if not defined NEFCON_EXE (
     if exist "%~dp0nefconc.exe" set "NEFCON_EXE=%~dp0nefconc.exe"
     if not defined NEFCON_EXE if exist "%~dp0files\nefconc.exe" set "NEFCON_EXE=%~dp0files\nefconc.exe"
-    if not defined NEFCON_EXE if exist "%~dp0..\rust\target\output\nefconc.exe" set "NEFCON_EXE=%~dp0..\rust\target\output\nefconc.exe"
+    if not defined NEFCON_EXE if exist "%~dp0..\target\output\nefconc.exe" set "NEFCON_EXE=%~dp0..\target\output\nefconc.exe"
 )
 
 :: 1. Remove device node
@@ -56,7 +56,7 @@ for /f "tokens=*" %%a in ('powershell -Command "(pnputil /enum-drivers | Select-
 set "UNREG_FILE="
 if exist "%~dp0uninstall.reg" set "UNREG_FILE=%~dp0uninstall.reg"
 if not defined UNREG_FILE if exist "%~dp0files\uninstall.reg" set "UNREG_FILE=%~dp0files\uninstall.reg"
-if not defined UNREG_FILE if exist "%~dp0..\rust\target\output\uninstall.reg" set "UNREG_FILE=%~dp0..\rust\target\output\uninstall.reg"
+if not defined UNREG_FILE if exist "%~dp0..\target\output\uninstall.reg" set "UNREG_FILE=%~dp0..\target\output\uninstall.reg"
 
 if defined UNREG_FILE (
     echo [3/3] Cleaning up registry entries: !UNREG_FILE!...

@@ -38,7 +38,7 @@ if %errorLevel% equ 0 (
 set "CERT_FILE="
 if exist "%~dp0DriverCertificate.cer" set "CERT_FILE=%~dp0DriverCertificate.cer"
 if not defined CERT_FILE if exist "%~dp0..\DriverCertificate.cer" set "CERT_FILE=%~dp0..\DriverCertificate.cer"
-if not defined CERT_FILE if exist "%~dp0..\rust\target\output\DriverCertificate.cer" set "CERT_FILE=%~dp0..\rust\target\output\DriverCertificate.cer"
+if not defined CERT_FILE if exist "%~dp0..\target\output\DriverCertificate.cer" set "CERT_FILE=%~dp0..\target\output\DriverCertificate.cer"
 
 if defined CERT_FILE (
     echo [2/5] Installing driver certificate: !CERT_FILE!...
@@ -57,7 +57,7 @@ if defined CERT_FILE (
 set "REG_FILE="
 if exist "%~dp0install.reg" set "REG_FILE=%~dp0install.reg"
 if not defined REG_FILE if exist "%~dp0files\install.reg" set "REG_FILE=%~dp0files\install.reg"
-if not defined REG_FILE if exist "%~dp0..\rust\target\output\install.reg" set "REG_FILE=%~dp0..\rust\target\output\install.reg"
+if not defined REG_FILE if exist "%~dp0..\target\output\install.reg" set "REG_FILE=%~dp0..\target\output\install.reg"
 
 if defined REG_FILE (
     echo [3/5] Importing registry settings: !REG_FILE!...
@@ -84,15 +84,12 @@ if /i "%PROCESSOR_ARCHITECTURE%"=="AMD64" (
 if not defined NEFCON_EXE (
     if exist "%~dp0nefconc.exe" set "NEFCON_EXE=%~dp0nefconc.exe"
     if not defined NEFCON_EXE if exist "%~dp0files\nefconc.exe" set "NEFCON_EXE=%~dp0files\nefconc.exe"
-    if not defined NEFCON_EXE if exist "%~dp0..\rust\target\output\nefconc.exe" set "NEFCON_EXE=%~dp0..\rust\target\output\nefconc.exe"
+    if not defined NEFCON_EXE if exist "%~dp0..\target\output\nefconc.exe" set "NEFCON_EXE=%~dp0..\target\output\nefconc.exe"
 )
 
 :: 5. Locate driver INF and install device node and driver package
 set "INF_PATH="
 if exist "%~dp0VirtualDisplayDriver.inf" set "INF_PATH=%~dp0VirtualDisplayDriver.inf"
-if not defined INF_PATH if exist "%~dp0..\rust\target\output\VirtualDisplayDriver.inf" (
-    for %%i in ("%~dp0..\rust\target\output\VirtualDisplayDriver.inf") do set "INF_PATH=%%~fi"
-)
 if not defined INF_PATH if exist "%~dp0..\target\output\VirtualDisplayDriver.inf" (
     for %%i in ("%~dp0..\target\output\VirtualDisplayDriver.inf") do set "INF_PATH=%%~fi"
 )
@@ -141,7 +138,7 @@ if "%REBOOT_REQUIRED%"=="1" (
 :: Check if user wants to run tests
 set "TEST_BAT="
 if exist "%~dp0test-phase6.bat" set "TEST_BAT=%~dp0test-phase6.bat"
-if not defined TEST_BAT if exist "%~dp0..\rust\target\output\test-phase6.bat" set "TEST_BAT=%~dp0..\rust\target\output\test-phase6.bat"
+if not defined TEST_BAT if exist "%~dp0..\target\output\test-phase6.bat" set "TEST_BAT=%~dp0..\target\output\test-phase6.bat"
 
 if defined TEST_BAT (
     echo.

@@ -55,9 +55,6 @@ function Report-Skip {
 # Locate CLI and Service binaries
 $cliPath = Join-Path $OutputDir "virtual-display-driver-cli.exe"
 if (-not (Test-Path $cliPath)) {
-    $cliPath = Join-Path $OutputDir "..\rust\target\output\virtual-display-driver-cli.exe"
-}
-if (-not (Test-Path $cliPath)) {
     $cliPath = Join-Path $OutputDir "..\target\output\virtual-display-driver-cli.exe"
 }
 if (-not (Test-Path $cliPath)) {
@@ -69,16 +66,10 @@ if (-not (Test-Path $cliPath)) {
 
 $servicePath = Join-Path $OutputDir "vdd-user-session-service.exe"
 if (-not (Test-Path $servicePath)) {
-    $servicePath = Join-Path $OutputDir "..\rust\target\output\vdd-user-session-service.exe"
-}
-if (-not (Test-Path $servicePath)) {
     $servicePath = Join-Path $OutputDir "..\target\output\vdd-user-session-service.exe"
 }
 
 $controlPath = Join-Path $OutputDir "VirtualDisplayDriverControl.exe"
-if (-not (Test-Path $controlPath)) {
-    $controlPath = Join-Path $OutputDir "..\rust\target\output\VirtualDisplayDriverControl.exe"
-}
 if (-not (Test-Path $controlPath)) {
     $controlPath = Join-Path $OutputDir "..\target\output\VirtualDisplayDriverControl.exe"
 }

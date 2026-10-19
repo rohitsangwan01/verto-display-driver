@@ -61,7 +61,7 @@ fn log(record: &log::Record) -> Option<()> {
 
 /// Initialize the global logger with a specific log level.
 ///
-/// ```
+/// ```ignore
 /// # use log::{warn, info};
 /// # fn main() {
 /// windebug_logger::init_with_level(log::Level::Warn).unwrap();

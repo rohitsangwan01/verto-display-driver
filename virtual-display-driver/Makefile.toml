@@ -82,7 +82,7 @@ end
 
 # Configure signing options based on certificate location
 if not is_empty ${CI}
-    set_env SIGN_OPTIONS "/f ../../private.pfx /p %PRIVATE_KEY_PASSWORD%"
+    set_env SIGN_OPTIONS "/f ../private.pfx /p %PRIVATE_KEY_PASSWORD%"
 else
     res_sm = exec cmd /c certutil -store "My"
     is_in_sm = contains ${res_sm.stdout} "DriverCertificate"

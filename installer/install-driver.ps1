@@ -51,7 +51,7 @@ if (-not $testSigningOn) {
 # 2. Install Certificate if present
 $certPath = Join-Path $ScriptDir "DriverCertificate.cer"
 if (-not (Test-Path $certPath)) { $certPath = Join-Path $ScriptDir "..\DriverCertificate.cer" }
-if (-not (Test-Path $certPath)) { $certPath = Join-Path $ScriptDir "..\rust\target\output\DriverCertificate.cer" }
+if (-not (Test-Path $certPath)) { $certPath = Join-Path $ScriptDir "..\target\output\DriverCertificate.cer" }
 
 if (Test-Path $certPath) {
     Write-Host "[2/5] Installing driver certificate: $certPath..." -ForegroundColor Yellow
@@ -65,7 +65,7 @@ if (Test-Path $certPath) {
 # 3. Import registry defaults
 $regPath = Join-Path $ScriptDir "install.reg"
 if (-not (Test-Path $regPath)) { $regPath = Join-Path $ScriptDir "files\install.reg" }
-if (-not (Test-Path $regPath)) { $regPath = Join-Path $ScriptDir "..\rust\target\output\install.reg" }
+if (-not (Test-Path $regPath)) { $regPath = Join-Path $ScriptDir "..\target\output\install.reg" }
 
 if (Test-Path $regPath) {
     Write-Host "[3/5] Importing registry settings: $regPath..." -ForegroundColor Yellow
@@ -89,11 +89,10 @@ if ($arch -ieq "ARM64") {
 if (-not $nefcon) {
     if (Test-Path (Join-Path $ScriptDir "nefconc.exe")) { $nefcon = Join-Path $ScriptDir "nefconc.exe" }
     elseif (Test-Path (Join-Path $ScriptDir "files\nefconc.exe")) { $nefcon = Join-Path $ScriptDir "files\nefconc.exe" }
-    elseif (Test-Path (Join-Path $ScriptDir "..\rust\target\output\nefconc.exe")) { $nefcon = Join-Path $ScriptDir "..\rust\target\output\nefconc.exe" }
+    elseif (Test-Path (Join-Path $ScriptDir "..\target\output\nefconc.exe")) { $nefcon = Join-Path $ScriptDir "..\target\output\nefconc.exe" }
 }
 
 $infPath = Join-Path $ScriptDir "VirtualDisplayDriver.inf"
-if (-not (Test-Path $infPath)) { $infPath = (Resolve-Path (Join-Path $ScriptDir "..\rust\target\output\VirtualDisplayDriver.inf") -ErrorAction SilentlyContinue).Path }
 if (-not (Test-Path $infPath)) { $infPath = (Resolve-Path (Join-Path $ScriptDir "..\target\output\VirtualDisplayDriver.inf") -ErrorAction SilentlyContinue).Path }
 
 if (-not (Test-Path $infPath)) {

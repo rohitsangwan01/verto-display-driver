@@ -34,7 +34,7 @@ if ($arch -ieq "ARM64") {
 if (-not $nefcon) {
     if (Test-Path (Join-Path $ScriptDir "nefconc.exe")) { $nefcon = Join-Path $ScriptDir "nefconc.exe" }
     elseif (Test-Path (Join-Path $ScriptDir "files\nefconc.exe")) { $nefcon = Join-Path $ScriptDir "files\nefconc.exe" }
-    elseif (Test-Path (Join-Path $ScriptDir "..\rust\target\output\nefconc.exe")) { $nefcon = Join-Path $ScriptDir "..\rust\target\output\nefconc.exe" }
+    elseif (Test-Path (Join-Path $ScriptDir "..\target\output\nefconc.exe")) { $nefcon = Join-Path $ScriptDir "..\target\output\nefconc.exe" }
 }
 
 # 1. Remove device node
@@ -58,7 +58,7 @@ foreach ($pkg in $oemPackages) {
 # 3. Registry cleanup
 $regPath = Join-Path $ScriptDir "uninstall.reg"
 if (-not (Test-Path $regPath)) { $regPath = Join-Path $ScriptDir "files\uninstall.reg" }
-if (-not (Test-Path $regPath)) { $regPath = Join-Path $ScriptDir "..\rust\target\output\uninstall.reg" }
+if (-not (Test-Path $regPath)) { $regPath = Join-Path $ScriptDir "..\target\output\uninstall.reg" }
 
 if (Test-Path $regPath) {
     Write-Host "[3/3] Cleaning up registry entries: $regPath..." -ForegroundColor Yellow

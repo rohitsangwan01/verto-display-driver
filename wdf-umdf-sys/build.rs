@@ -103,7 +103,7 @@ fn get_sdk_path<S: AsRef<Path>>(dir_type: DirectoryType, subs: &[S]) -> Result<P
             is_sdk && sub_dir.is_dir()
         })
         .max()
-        .ok_or_else(|| Error::DirectoryNotFound)?;
+        .ok_or(Error::DirectoryNotFound)?;
 
     dir.extend(subs);
     if !dir.is_dir() {

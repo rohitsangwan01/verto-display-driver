@@ -126,7 +126,7 @@ macro_rules! WdfCall {
 /// This generates associated fns `init`/`get`/`drop`/`get_type_info` on your `$context_type` with the same visibility
 ///
 /// Example:
-/// ```rust
+/// ```ignore
 /// pub struct IndirectDeviceContext {
 ///     device: WDFDEVICE,
 /// }
