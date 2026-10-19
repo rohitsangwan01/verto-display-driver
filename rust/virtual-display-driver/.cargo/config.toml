@@ -1,0 +1,10 @@
+[build]
+
+rustflags = [
+    "-Zpre-link-arg=/NOLOGO",
+    "-Zpre-link-arg=/MANIFEST:NO",
+    "-Zpre-link-arg=/SUBSYSTEM:WINDOWS",
+    "-Zpre-link-arg=/DYNAMICBASE",
+    "-Zpre-link-arg=/NXCOMPAT",
+    "-Clink-arg=/OPT:REF,ICF",
+]
