@@ -80,12 +80,18 @@ set_env BAT_PATH ${BAT_PATH}
 if not is_empty ${CI}
     set_env SIGN_OPTIONS "/f private.pfx /p %PRIVATE_KEY_PASSWORD%"
 else
-    res_sm = exec cmd /c certutil -store "My"
-    is_in_sm = contains ${res_sm.stdout} "DriverCertificate"
-    if ${is_in_sm}
-        set_env SIGN_OPTIONS "/sm /n DriverCertificate"
-    else
+    res_user = exec cmd /c certutil -user -store "My"
+    is_in_user = contains ${res_user.stdout} "DriverCertificate"
+    if ${is_in_user}
         set_env SIGN_OPTIONS "/n DriverCertificate"
+    else
+        res_sm = exec cmd /c certutil -store "My"
+        is_in_sm = contains ${res_sm.stdout} "DriverCertificate"
+        if ${is_in_sm}
+            set_env SIGN_OPTIONS "/sm /n DriverCertificate"
+        else
+            set_env SIGN_OPTIONS "/n DriverCertificate"
+        end
     end
 end
 ''',
@@ -148,7 +154,11 @@ if is_path_exists ${nefcon_src}
 end
 
 # Copy root certificate if present
-root_cert = set "DriverCertificate.cer"
+root_cert = set "cert/DriverCertificate.cer"
+is_cert = is_path_exists ${root_cert}
+if not ${is_cert}
+    root_cert = set "DriverCertificate.cer"
+end
 if is_path_exists ${root_cert}
     cp ${root_cert} "${out_dir}/DriverCertificate.cer"
 end

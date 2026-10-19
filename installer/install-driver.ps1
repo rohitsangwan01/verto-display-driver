@@ -50,6 +50,7 @@ if (-not $testSigningOn) {
 
 # 2. Install Certificate if present
 $certPath = Join-Path $ScriptDir "DriverCertificate.cer"
+if (-not (Test-Path $certPath)) { $certPath = Join-Path $ScriptDir "..\cert\DriverCertificate.cer" }
 if (-not (Test-Path $certPath)) { $certPath = Join-Path $ScriptDir "..\DriverCertificate.cer" }
 if (-not (Test-Path $certPath)) { $certPath = Join-Path $ScriptDir "..\target\output\DriverCertificate.cer" }
 

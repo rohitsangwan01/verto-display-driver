@@ -37,6 +37,7 @@ if %errorLevel% equ 0 (
 :: 2. Install Certificate if present
 set "CERT_FILE="
 if exist "%~dp0DriverCertificate.cer" set "CERT_FILE=%~dp0DriverCertificate.cer"
+if not defined CERT_FILE if exist "%~dp0..\cert\DriverCertificate.cer" set "CERT_FILE=%~dp0..\cert\DriverCertificate.cer"
 if not defined CERT_FILE if exist "%~dp0..\DriverCertificate.cer" set "CERT_FILE=%~dp0..\DriverCertificate.cer"
 if not defined CERT_FILE if exist "%~dp0..\target\output\DriverCertificate.cer" set "CERT_FILE=%~dp0..\target\output\DriverCertificate.cer"
 
